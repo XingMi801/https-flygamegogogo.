@@ -28,15 +28,17 @@ except ImportError:
     sys.exit(1)
 
 # ---------- 1. WebP 转换 ----------
+# GitHub Pages 部署要求：资源一律使用 ASCII 文件名（兼容旧中文名 浪尖.jpg）
 def build_webp():
     try:
         from PIL import Image
     except ImportError:
         print('[warn] 未安装 Pillow，跳过 WebP 转换（继续用 JPG）')
         return False
-    src, dst = '浪尖.jpg', '浪尖.webp'
+    src = 'langjian.jpg' if os.path.exists('langjian.jpg') else '浪尖.jpg'
+    dst = 'langjian.webp'
     if not os.path.exists(src):
-        print('[warn] 找不到 浪尖.jpg，跳过')
+        print('[warn] 找不到 %s，跳过' % src)
         return False
     need = True
     if os.path.exists(dst):
@@ -46,7 +48,7 @@ def build_webp():
         img.save(dst, 'WEBP', quality=82, method=6)
         print('[webp] %s -> %s  (%d B -> %d B)' % (src, dst, os.path.getsize(src), os.path.getsize(dst)))
     else:
-        print('[webp] 浪尖.webp 已是最新')
+        print('[webp] langjian.webp 已是最新')
     return True
 
 has_webp = build_webp()
@@ -137,14 +139,24 @@ def build_html(css, js_path):
     else:
         html = re.sub(r'<link rel="stylesheet" href="style\.css" />', style_tag, html)
 
-    # 4.5 图片 WebP + 懒加载（幂等）
+    # 4.5 图片 WebP + 懒加载（幂等；ASCII 文件名兼容 GitHub Pages）
     if has_webp:
         pic = ('<picture id="langjian-pic">'
-               '<source srcset="浪尖.webp" type="image/webp" />'
-               '<img src="浪尖.jpg" alt="浪尖" loading="lazy" decoding="async" draggable="false" />'
+               '<source srcset="langjian.webp" type="image/webp" />'
+               '<img src="langjian.jpg" alt="浪尖" loading="lazy" decoding="async" draggable="false" />'
                '</picture>')
-        if 'langjian-pic' not in html:
-            html = re.sub(r'<img src="浪尖\.jpg"[^>]*/>', pic, html)
+        replaced = False
+        if 'langjian-pic' in html:
+            # 替换整个已有 picture 块（含旧中文名版本）
+            html = re.sub(r'<picture id="langjian-pic">[\s\S]*?</picture>', pic, html)
+            replaced = True
+        else:
+            new_html = re.sub(r'<img src="浪尖\.jpg"[^>]*/>', pic, html)
+            if new_html != html:
+                html = new_html
+                replaced = True
+        if not replaced:
+            print('[warn] 未找到浪尖横幅 img/picture，请检查 index.html')
 
     # 4.6 脚本合并（幂等：从第一个 <script 到 </body> 前全部替换为单个 defer bundle）
     bundle_tag = '<script defer src="%s"></script>\n</body>' % js_path
