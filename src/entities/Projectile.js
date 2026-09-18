@@ -168,7 +168,7 @@ class EnemyBullet extends Entity {
     this.bornSpeed = Math.sqrt(vx*vx + vy*vy);
     this.accel = opts.accel || 0;
     this.life = 0;
-    this.maxLife = opts.maxLife || 8;
+    this.maxLife = opts.maxLife || 4;  // 默认 4s（缩短，避免满屏乱线）
     this.homingStrength = opts.homingStrength || 0;
     this.target = null;
     this.split = !!opts.split;
