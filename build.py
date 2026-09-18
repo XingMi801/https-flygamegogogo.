@@ -116,7 +116,10 @@ def build_js():
     io.open(out, 'w', encoding='utf-8').write(bundle)
     size = os.path.getsize(out)
     print('[js] %d 个文件 -> %s  (%.1f KB raw -> %.1f KB min)' % (len(JS_ORDER), out, total_raw/1024, size/1024))
-    return out
+    # 内容 hash 作为版本戳（cache-busting：内容变 URL 变，浏览器必拉新版本）
+    import hashlib
+    ver = hashlib.md5(bundle.encode('utf-8')).hexdigest()[:8]
+    return out, ver
 
 # ---------- 3. CSS 压缩 ----------
 def build_css():
@@ -126,7 +129,7 @@ def build_css():
     return css
 
 # ---------- 4. index.html 重写（幂等） ----------
-def build_html(css, js_path):
+def build_html(css, js_path, ver):
     html = io.open('index.html', 'r', encoding='utf-8').read()
 
     # 4.1 viewport 升级
@@ -171,9 +174,13 @@ def build_html(css, js_path):
             print('[warn] 未找到浪尖横幅 img/picture，请检查 index.html')
 
     # 4.6 脚本合并（幂等：从第一个 <script 到 </body> 前全部替换为单个 defer bundle）
-    bundle_tag = '<script defer src="%s"></script>\n</body>' % js_path
+    # 引用带内容 hash 版本戳，内容变化时 URL 变化，强制浏览器/CDN 拉新版本
+    bundle_tag = '<script defer src="%s?v=%s"></script>\n</body>' % (js_path, ver)
     html = re.sub(r'<!-- 全局命名空间 -->[\s\S]*?<script src="src/main\.js"></script>\s*</body>', bundle_tag, html)
-    if 'game.bundle.min.js' not in html:
+    if 'game.bundle.min.js' in html:
+        # 已构建过：替换旧 bundle 单标签（含旧 ?v= 版本戳）
+        html = re.sub(r'<script[^>]*game\.bundle\.min\.js[^>]*></script>\s*</body>', bundle_tag, html)
+    elif 'src/main.js' not in html:
         # 兜底：任意脚本块
         html = re.sub(r'<script[\s\S]*?</script>\s*</body>', bundle_tag, html)
 
@@ -181,7 +188,7 @@ def build_html(css, js_path):
     print('[html] index.html 已重写：内联 CSS + defer 单 bundle%s' % (' + WebP 懒加载' if has_webp else ''))
 
 if __name__ == '__main__':
-    js_path = build_js()
+    js_path, js_ver = build_js()
     css = build_css()
-    build_html(css, js_path)
-    print('[done] 构建完成。修改 src/ 或 style.css 后重新运行本脚本即可。')
+    build_html(css, js_path, js_ver)
+    print('[done] 构建完成 (bundle v=%s)。修改 src/ 或 style.css 后重新运行本脚本即可。' % js_ver)
