@@ -35,7 +35,7 @@ const Effects = {
   },
 
   // Boss 出场 WARNING（duration 秒）
-  triggerBossWarning(duration = 1.8) {
+  triggerBossWarning(duration = 1.0) {
     this.warningActive = true;
     this.warningTimer = duration;
     if (Game.audio) Game.audio.play('warning');
@@ -95,12 +95,12 @@ const Effects = {
     const cg = this.cg;
     if (cg.active) {
       cg.timer += dt;
-      // 时长分阶段
-      // victory: 0-1.8s 飞行+星空 / 1.8-3.6s 文字+语音 / 3.6-4.5s 渐隐
-      // defeat:  0-2.0s 爆炸+残骸 / 2.0-3.8s 文字+语音 / 3.8-4.5s 渐隐
-      const t1 = cg.type === 'victory' ? 1.8 : 2.0;
-      const t2 = cg.type === 'victory' ? 3.6 : 3.8;
-      const tEnd = 4.6;
+      // 时长分阶段（整体压缩至 2.8s）
+      // victory: 0-1.0s 飞行+星空 / 1.0-2.0s 文字+语音 / 2.0-2.8s 渐隐
+      // defeat:  0-1.2s 爆炸+残骸 / 1.2-2.2s 文字+语音 / 2.2-2.8s 渐隐
+      const t1 = cg.type === 'victory' ? 1.0 : 1.2;
+      const t2 = cg.type === 'victory' ? 2.0 : 2.2;
+      const tEnd = 2.8;
 
       if (cg.timer < t1) cg.phase = 0;
       else if (cg.timer < t2) cg.phase = 1;
@@ -283,8 +283,8 @@ const Effects = {
       ctx.textBaseline = 'middle';
 
       // 标题（带辉光 + 缩放进入）
-      const enterT = cg.type === 'victory' ? 1.8 : 2.0;
-      const p = Math.min(1, (cg.timer - enterT) / 0.5);
+      const enterT = cg.type === 'victory' ? 1.0 : 1.2;
+      const p = Math.min(1, (cg.timer - enterT) / 0.35);
       const scale = 0.5 + p * 0.5 + Math.sin(time * 3) * 0.02;
       ctx.translate(cx, cy - 30);
       ctx.scale(scale, scale);
@@ -323,8 +323,8 @@ const Effects = {
 
     // 阶段 2：渐隐
     if (cg.phase === 2) {
-      const t2 = cg.type === 'victory' ? 3.6 : 3.8;
-      const fa = Math.min(1, (cg.timer - t2) / 0.8);
+      const t2 = cg.type === 'victory' ? 2.0 : 2.2;
+      const fa = Math.min(1, (cg.timer - t2) / 0.6);
       ctx.save();
       ctx.fillStyle = `rgba(0,0,0,${fa})`;
       ctx.fillRect(0, 0, W, H);

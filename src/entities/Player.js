@@ -131,7 +131,8 @@ class Player extends Entity {
     if (this.slowMode) speed *= Balance.player.slowMultiplier;
 
     let mx = Input.moveX, my = Input.moveY;
-    // 触摸控制：直接朝手指位置移动
+    // 触摸控制：朝触控目标点平滑移动（Input 采用相对拖动虚拟摇杆，
+    // touchPos = 飞机初始位置 + 手指滑动 delta，手指不会遮挡飞机）
     if (Input.touchActive && Input.touchPos) {
       const dx = Input.touchPos.x - this.x;
       const dy = Input.touchPos.y - this.y;

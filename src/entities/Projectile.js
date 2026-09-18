@@ -58,7 +58,7 @@ class PlayerBullet extends Entity {
     ctx.save();
     if (this.kind === 'laser') {
       // 激光：长条 + 强辉光
-      ctx.shadowBlur = 16;
+      ctx.shadowBlur = 8;
       ctx.shadowColor = this.color;
       ctx.fillStyle = this.color;
       ctx.fillRect(this.x - 2, this.y - 14, 4, 28);
@@ -66,7 +66,7 @@ class PlayerBullet extends Entity {
       ctx.fillRect(this.x - 1, this.y - 14, 2, 28);
     } else if (this.kind === 'homing') {
       // 追踪弹：圆形 + 拖尾
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 6;
       ctx.shadowColor = this.color;
       ctx.fillStyle = this.color;
       ctx.beginPath();
@@ -78,7 +78,7 @@ class PlayerBullet extends Entity {
       ctx.fill();
     } else {
       // 散射：圆+光
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 6;
       ctx.shadowColor = this.color;
       ctx.fillStyle = this.color;
       ctx.beginPath();
@@ -142,7 +142,7 @@ class EnemyBullet extends Entity {
     this.curveAngle = 0;    // 曲线偏移
     this.curveAmount = 0;   // 度/秒
     this.life = 0;
-    this.maxLife = 8;       // 自动消失
+    this.maxLife = 4;       // 自动消失（缩短，避免满屏乱线）
     this.color = Balance.color.enemyRed;
     this.radius = 5;
     this.active = false;
@@ -263,8 +263,8 @@ class EnemyBullet extends Entity {
       return;
     }
 
-    // 出界（保留一会儿，可能返回）
-    if (this.x < -50 || this.x > Balance.width + 50 || this.y < -50 || this.y > Balance.height + 50) {
+    // 出界（缩短宽容区，避免子弹滞留过久）
+    if (this.x < -20 || this.x > Balance.width + 20 || this.y < -20 || this.y > Balance.height + 20) {
       this.active = false; this.dead = true;
     }
   }
@@ -275,13 +275,13 @@ class EnemyBullet extends Entity {
       const a = (i / this.splitCount) * 360 + Math.random() * 30;
       const r = Utils.rad(a);
       EnemyBulletPool.spawn(this.x, this.y, Math.cos(r) * speed, Math.sin(r) * speed, {
-        color: this.color, radius: 4, mode: 'straight',
+        color: this.color, radius: 4, mode: 'straight', maxLife: 3,
       });
     }
   }
   _onDraw(ctx) {
     ctx.save();
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 4;       // 降低发光重叠（避免满屏糊一团）
     ctx.shadowColor = this.color;
     ctx.fillStyle = this.color;
     ctx.beginPath();

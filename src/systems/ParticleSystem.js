@@ -50,14 +50,14 @@ const ParticleSystem = {
     return p;
   },
 
-  // 爆炸：碎片 + 火花
+  // 爆炸：碎片 + 火花（缩短寿命，避免特效拖沓）
   spawnExplosion(x, y, color = '#ffaa00', count = 16) {
     for (let i = 0; i < count; i++) {
       const ang = Math.random() * Utils.TAU;
       const speed = 80 + Math.random() * 220;
       this._spawn({
         x, y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
-        maxLife: 0.4 + Math.random() * 0.5, size: 2 + Math.random() * 3,
+        maxLife: 0.25 + Math.random() * 0.3, size: 2 + Math.random() * 3,
         color, gravity: 200, friction: 0.92, type: i % 2 ? 'debris' : 'spark',
         spin: (Math.random() - 0.5) * 10,
       });
@@ -68,7 +68,7 @@ const ParticleSystem = {
       const speed = 200 + Math.random() * 300;
       this._spawn({
         x, y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
-        maxLife: 0.2 + Math.random() * 0.2, size: 1,
+        maxLife: 0.12 + Math.random() * 0.12, size: 1,
         color: '#ffffff', friction: 0.85, type: 'spark',
       });
     }
@@ -81,7 +81,7 @@ const ParticleSystem = {
       const speed = 100 + Math.random() * 150;
       this._spawn({
         x, y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
-        maxLife: 0.4, size: 2, color, friction: 0.9, type: 'spark',
+        maxLife: 0.25, size: 2, color, friction: 0.9, type: 'spark',
       });
     }
   },
@@ -90,7 +90,7 @@ const ParticleSystem = {
   spawnShockwave(x, y, color = '#fff') {
     this._spawn({
       x, y, vx: 0, vy: 0,
-      maxLife: 0.6, size: 10, color, type: 'shockwave',
+      maxLife: 0.35, size: 10, color, type: 'shockwave',
     });
   },
 
@@ -143,7 +143,7 @@ const ParticleSystem = {
       if (!p.active) continue;
       const a = p.life / p.maxLife;
       ctx.globalAlpha = a;
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 4;
       ctx.shadowColor = p.color;
       if (p.type === 'shockwave') {
         ctx.strokeStyle = p.color;

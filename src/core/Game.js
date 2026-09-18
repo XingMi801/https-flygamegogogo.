@@ -205,6 +205,7 @@ const Game = {
     // 玩家：无尽模式从头开始（每日挑战用当日固定战机）
     const planeKey = this._dailyPlane || SaveSystem.getSelectedPlane();
     this.player = new Player(Balance.width / 2, Balance.height - 100, planeKey);
+    if (Input._releaseControl) Input._releaseControl(); // 新局清理触控残留锁
     if (this._dailyMods && this._dailyMods.includes('bomb1')) {
       this.player.bombs = 1;
     }
@@ -278,6 +279,7 @@ const Game = {
     // 玩家：跨关继承
     const planeKey = SaveSystem.getSelectedPlane();
     this.player = new Player(Balance.width / 2, Balance.height - 100, planeKey);
+    if (Input._releaseControl) Input._releaseControl(); // 新局清理触控残留锁
     if (this.playerSnapshot) {
       this.player.weapon = this.playerSnapshot.weapon;
       this.player.weapon.level = Math.max(1, this.player.weapon.level);
@@ -307,10 +309,33 @@ const Game = {
   },
 
   _showStageIntro(stageData) {
+    // 第 1 关显示移动端触控提示（检测触屏设备）
+    let statsHtml = '';
+    if (stageData.stage === 1) {
+      const isTouch = (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches)
+        || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+      if (isTouch) {
+        statsHtml = `
+          <div class="stat-line" style="margin:6px 0;padding:10px;background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.3);border-radius:8px;text-align:center;">
+            <span class="stat-label" style="display:block;font-size:13px;color:#00f0ff;margin-bottom:4px;">📱 移动端操作</span>
+            <span class="stat-value" style="display:block;font-size:12px;line-height:1.7;opacity:.9;">
+              按住屏幕拖动 = 移动飞机<br>
+              手指不会挡住飞机（相对拖动）<br>
+              右下按钮 = 炸弹 / 低速<br>
+              自动开火，无需按键
+            </span>
+          </div>`;
+      } else {
+        statsHtml = `
+          <div class="stat-line" style="margin:6px 0;padding:10px;background:rgba(0,240,255,0.06);border:1px solid rgba(0,240,255,0.2);border-radius:8px;text-align:center;">
+            <span class="stat-label" style="display:block;font-size:12px;opacity:.8;">WASD/方向键 移动 · Shift 低速 · Z 炸弹 · Q 清屏 · X 投降 · Esc 暂停</span>
+          </div>`;
+      }
+    }
     Menu.show(
       `STAGE ${stageData.stage}`,
       stageData.background.toUpperCase().replace('_', ' '),
-      '',
+      statsHtml,
       [{ label: 'GO', onClick: () => { Menu.hide(); this.state = 'play'; } }]
     );
   },

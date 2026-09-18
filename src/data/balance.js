@@ -26,7 +26,7 @@ const Balance = {
       laser: 0.06,
       homing: 0.14,
     },
-    maxWeaponLevel: 5,
+    maxWeaponLevel: 4,    // 满级从 5 降为 4（避免后期火力溢出，玩家站桩清屏）
     optionFireMultiplier: 0.4,
   },
 
@@ -86,11 +86,11 @@ const Balance = {
     defaultReward: 8,      // 未知类型兜底
   },
 
-  // 掉落概率
+  // 掉落概率（下调 P/武器掉率，避免火力过早满级）
   dropRates: {
-    normal: { P: 0.12, energy: 0.08, bomb: 0.01, shield: 0.03, life: 0.005, option: 0 },
-    elite:  { P: 0.40, energy: 0.30, bomb: 0.08, shield: 0.15, life: 0.04, option: 0.10 },
-    bossTransition: { P: 1.0, energy: 1.0, bomb: 0.5, shield: 0.3, life: 0.1, option: 0 },
+    normal: { P: 0.06, energy: 0.08, bomb: 0.01, shield: 0.03, life: 0.005, option: 0 },
+    elite:  { P: 0.25, energy: 0.30, bomb: 0.08, shield: 0.15, life: 0.04, option: 0.08 },
+    bossTransition: { P: 0.6, energy: 1.0, bomb: 0.5, shield: 0.3, life: 0.1, option: 0 },
   },
 
   // 颜色

@@ -35,6 +35,10 @@ const Input = {
   _canvas: null,
   _touchSlow: false,
   _touchFire: false,
+  // 相对拖动（虚拟摇杆）状态
+  _touchId: null,          // 操控手指的 identifier（支持多点触控）
+  _touchAnchor: null,      // 手指落下时的客户端坐标
+  _touchPlane0: null,      // 手指落下时飞机的游戏坐标
 
   init(canvas) {
     this._canvas = canvas;
@@ -53,39 +57,81 @@ const Input = {
       this.keys[e.code] = false;
     });
 
-    // ===== 触摸（飞机跟随手指拖动） =====
-    const getCanvasPos = (clientX, clientY) => {
+    // ===== 触摸：全屏相对拖动（虚拟摇杆）=====
+    // 设计要点（移动端真机兼容）：
+    // 1) 监听挂在 window（捕获阶段），canvas 在竖屏手机上下有黑边，
+    //    只绑 canvas 会导致黑边区域触摸全部丢失；
+    // 2) 手指落下点为"锚点"，飞机目标点 = 飞机初始位置 + 滑动 delta，
+    //    手指永远不会盖住飞机（区别于"绝对跟随手指"）；
+    // 3) identifier 锁定第一根有效手指，另一根手指可同时点 BOMB/SLOW；
+    // 4) 仅在战斗中(state=play)且触摸点不在菜单/按钮上时接管，不挡 UI 点击。
+    const toGameXY = (clientX, clientY) => {
       const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
       return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY,
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height),
       };
     };
 
-    canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      if (e.touches.length > 0) {
+    const isUiTouch = (target) => {
+      return !!(target && target.closest &&
+        (target.closest('#overlay') || target.closest('#touch-controls')));
+    };
+
+    const canControl = () => typeof Game !== 'undefined' && Game && Game.state === 'play';
+
+    const findTouch = (list, id) => {
+      for (let i = 0; i < list.length; i++) if (list[i].identifier === id) return list[i];
+      return null;
+    };
+
+    window.addEventListener('touchstart', (e) => {
+      if (this._touchId !== null || !canControl()) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (isUiTouch(t.target)) continue;
+        // 锁定该手指为操控指
+        this._touchId = t.identifier;
+        this._touchAnchor = { x: t.clientX, y: t.clientY };
+        this._touchPlane0 = { x: Game.player.x, y: Game.player.y };
         this.touchActive = true;
-        this.touchPos = getCanvasPos(e.touches[0].clientX, e.touches[0].clientY);
+        this.touchPos = { x: Game.player.x, y: Game.player.y };
+        e.preventDefault();
+        break;
       }
     }, { passive: false });
 
-    canvas.addEventListener('touchmove', (e) => {
+    window.addEventListener('touchmove', (e) => {
+      if (this._touchId === null) return;
+      // 离开战斗状态（暂停/死亡/结算）立即释放操控锁
+      if (!canControl()) { this._releaseControl(); return; }
+      const t = findTouch(e.touches, this._touchId);
+      if (!t) return;
       e.preventDefault();
-      if (e.touches.length > 0) {
-        this.touchPos = getCanvasPos(e.touches[0].clientX, e.touches[0].clientY);
-      }
+      const rect = canvas.getBoundingClientRect();
+      const sx = canvas.width / rect.width;
+      const sy = canvas.height / rect.height;
+      const gx = this._touchPlane0.x + (t.clientX - this._touchAnchor.x) * sx;
+      const gy = this._touchPlane0.y + (t.clientY - this._touchAnchor.y) * sy;
+      this.touchPos = {
+        x: Utils.clamp(gx, 0, Balance.width),
+        y: Utils.clamp(gy, 0, Balance.height),
+      };
     }, { passive: false });
 
-    canvas.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      if (e.touches.length === 0) {
-        this.touchActive = false;
-        this.touchPos = null;
-      }
-    }, { passive: false });
+    this._releaseControl = () => {
+      this._touchId = null;
+      this._touchAnchor = null;
+      this._touchPlane0 = null;
+      this.touchActive = false;
+      this.touchPos = null;
+    };
+    const releaseTouch = (e) => {
+      if (this._touchId === null) return;
+      if (!findTouch(e.touches, this._touchId)) this._releaseControl();
+    };
+    window.addEventListener('touchend', releaseTouch, { passive: false });
+    window.addEventListener('touchcancel', releaseTouch, { passive: false });
 
     // ===== 移动端按钮 =====
     const bombBtn = document.getElementById('bomb-btn');

@@ -24,8 +24,20 @@ try:
     import rjsmin
     import rcssmin
 except ImportError:
-    print('缺少 rjsmin/rcssmin：python -m pip install rjsmin rcssmin')
-    sys.exit(1)
+    # 允许在没有可联网安装依赖的环境中完成构建。
+    # 不压缩不会改变运行逻辑，只会让 bundle 稍大；后续装好依赖后会自动恢复压缩。
+    class _NoopMinifier:
+        @staticmethod
+        def jsmin(text):
+            return text
+
+        @staticmethod
+        def cssmin(text):
+            return text
+
+    rjsmin = _NoopMinifier()
+    rcssmin = _NoopMinifier()
+    print('[warn] 未找到 rjsmin/rcssmin，使用无压缩构建（功能不受影响）')
 
 # ---------- 1. WebP 转换 ----------
 # GitHub Pages 部署要求：资源一律使用 ASCII 文件名（兼容旧中文名 浪尖.jpg）
